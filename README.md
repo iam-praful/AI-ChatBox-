@@ -13,7 +13,7 @@ A WhatsApp-like chat interface with AI responses
 ## 🛠️ Setup (2 Minutes)  
 1. Clone this repo:  
    ```bash
-   git clone https://github.com/YOUR-USERNAME/ai-chatbox.git
+   git clone [https://github.com/iam-praful/AI-ChatBox-.git]
    ```
 2. Install dependencies:  
    ```bash
