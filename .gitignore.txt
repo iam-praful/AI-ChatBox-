@@ -1,0 +1,13 @@
+# Ignore node modules
+node_modules/
+
+# Ignore database file
+chat.db
+
+# Ignore environment variables (API keys)
+.env
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+*.log

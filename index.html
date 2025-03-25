@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Chatbox</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    :root {
+      --primary-red: #e74c3c;
+      --dark-red: #c0392b;
+      --light-gray: #f5f5f5;
+      --medium-gray: #e0e0e0;
+      --dark-gray: #333333;
+      --text-gray: #555555;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      background-color: var(--light-gray);
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .chat-container {
+      width: 100%;
+      max-width: 500px;
+      height: 90vh;
+      background-color: white;
+      border-radius: 10px;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .chat-header {
+      background-color: var(--primary-red);
+      color: white;
+      padding: 15px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .chat-header h1 {
+      font-size: 1.2rem;
+      font-weight: 600;
+    }
+
+    .chat-header i {
+      font-size: 1.2rem;
+      cursor: pointer;
+    }
+
+    .chat-messages {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+      background-color: #f9f9f9;
+    }
+
+    .message {
+      margin-bottom: 15px;
+      display: flex;
+      flex-direction: column;
+      max-width: 80%;
+    }
+
+    .message-user {
+      align-items: flex-end;
+      margin-left: auto;
+    }
+
+    .message-ai {
+      align-items: flex-start;
+      margin-right: auto;
+    }
+
+    .message-content {
+      padding: 10px 15px;
+      border-radius: 18px;
+      margin-bottom: 5px;
+      word-wrap: break-word;
+    }
+
+    .user-message {
+      background-color: var(--primary-red);
+      color: white;
+      border-bottom-right-radius: 5px;
+    }
+
+    .ai-message {
+      background-color: var(--medium-gray);
+      color: var(--dark-gray);
+      border-bottom-left-radius: 5px;
+    }
+
+    .message-info {
+      font-size: 0.75rem;
+      color: var(--text-gray);
+    }
+
+    .chat-input {
+      display: flex;
+      padding: 15px;
+      background-color: white;
+      border-top: 1px solid var(--medium-gray);
+    }
+
+    .chat-input input {
+      flex: 1;
+      padding: 12px 15px;
+      border: 1px solid var(--medium-gray);
+      border-radius: 25px;
+      outline: none;
+      font-size: 1rem;
+    }
+
+    .chat-input button {
+      background-color: var(--primary-red);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 45px;
+      height: 45px;
+      margin-left: 10px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    .chat-input button:hover {
+      background-color: var(--dark-red);
+    }
+
+    .typing-indicator {
+      display: flex;
+      padding: 10px 15px;
+      background-color: var(--medium-gray);
+      color: var(--dark-gray);
+      border-radius: 18px;
+      margin-bottom: 15px;
+      width: fit-content;
+    }
+
+    .typing-indicator span {
+      height: 8px;
+      width: 8px;
+      background-color: var(--text-gray);
+      border-radius: 50%;
+      display: inline-block;
+      margin: 0 2px;
+      animation: bounce 1.5s infinite ease-in-out;
+    }
+
+    .typing-indicator span:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+
+    .typing-indicator span:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+
+    @keyframes bounce {
+      0%, 60%, 100% { transform: translateY(0); }
+      30% { transform: translateY(-5px); }
+    }
+
+    @media (max-width: 600px) {
+      .chat-container {
+        height: 100vh;
+        border-radius: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="chat-container">
+    <div class="chat-header">
+      <h1>AI Assistant</h1>
+      <i class="fas fa-robot"></i>
+    </div>
+    
+    <div class="chat-messages" id="chat-messages">
+      <!-- Messages will appear here -->
+    </div>
+    
+    <div class="chat-input">
+      <input type="text" id="message-input" placeholder="Type a message..." autocomplete="off">
+      <button id="send-button"><i class="fas fa-paper-plane"></i></button>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const chatMessages = document.getElementById('chat-messages');
+      const messageInput = document.getElementById('message-input');
+      const sendButton = document.getElementById('send-button');
+      let isAIResponding = false;
+
+      // Load previous messages
+      fetchMessages();
+
+      // Send message on button click
+      sendButton.addEventListener('click', sendMessage);
+
+      // Send message on Enter key
+      messageInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+          sendMessage();
+        }
+      });
+
+      function fetchMessages() {
+        fetch('/messages')
+          .then(response => response.json())
+          .then(messages => {
+            chatMessages.innerHTML = '';
+            messages.forEach(message => {
+              addMessageToChat(message.sender, message.content);
+            });
+            scrollToBottom();
+          })
+          .catch(error => console.error('Error fetching messages:', error));
+      }
+
+      function sendMessage() {
+        const content = messageInput.value.trim();
+        if (content === '' || isAIResponding) return;
+
+        // Add user message to chat immediately
+        addMessageToChat('user', content);
+        messageInput.value = '';
+        scrollToBottom();
+
+        // Show typing indicator
+        showTypingIndicator();
+
+        // Send to server
+        fetch('/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ content }),
+        })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Network response was not ok');
+          }
+          return response.json();
+        })
+        .then(() => {
+          // After AI responds, fetch all messages again to get the complete conversation
+          fetchMessages();
+        })
+        .catch(error => {
+          console.error('Error sending message:', error);
+          addMessageToChat('AI', "Sorry, I'm having trouble responding right now.");
+        })
+        .finally(() => {
+          hideTypingIndicator();
+          isAIResponding = false;
+        });
+      }
+
+      function addMessageToChat(sender, content) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message message-${sender.toLowerCase()}`;
+        
+        const contentDiv = document.createElement('div');
+        contentDiv.className = `message-content ${sender.toLowerCase()}-message`;
+        contentDiv.textContent = content;
+        
+        const infoDiv = document.createElement('div');
+        infoDiv.className = 'message-info';
+        infoDiv.textContent = sender === 'user' ? 'You' : 'AI Assistant';
+        
+        messageDiv.appendChild(contentDiv);
+        messageDiv.appendChild(infoDiv);
+        chatMessages.appendChild(messageDiv);
+        
+        scrollToBottom();
+      }
+
+      function showTypingIndicator() {
+        isAIResponding = true;
+        const typingDiv = document.createElement('div');
+        typingDiv.className = 'message message-ai';
+        typingDiv.id = 'typing-indicator';
+        
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'typing-indicator';
+        contentDiv.innerHTML = '<span></span><span></span><span></span>';
+        
+        const infoDiv = document.createElement('div');
+        infoDiv.className = 'message-info';
+        infoDiv.textContent = 'AI Assistant';
+        
+        typingDiv.appendChild(contentDiv);
+        typingDiv.appendChild(infoDiv);
+        chatMessages.appendChild(typingDiv);
+        
+        scrollToBottom();
+      }
+
+      function hideTypingIndicator() {
+        const typingIndicator = document.getElementById('typing-indicator');
+        if (typingIndicator) {
+          typingIndicator.remove();
+        }
+      }
+
+      function scrollToBottom() {
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      }
+    });
+  </script>
+</body>
+</html>
